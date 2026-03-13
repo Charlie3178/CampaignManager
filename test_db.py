@@ -1,5 +1,7 @@
 from models import Character, Item, Creature
 from utils.db_handler import save_character, save_item, save_creature
+from utils.db_handler import get_all_characters, find_character_by_name
+
 
 def run_integration_test():
     print("--- Starting Database Integration Test ---")
@@ -7,9 +9,9 @@ def run_integration_test():
     try:
         # 1. Test NPC Creation
         innkeeper = Character(
-            name="Durnan", 
-            race="Human", 
-            class_role="Innkeeper", 
+            name="Durnan",
+            race="Human",
+            class_role="Innkeeper",
             notes="Owner of the Yawning Portal."
         )
         npc_id = save_character(innkeeper)
@@ -17,9 +19,9 @@ def run_integration_test():
 
         # 2. Test PC Creation
         hero = Character(
-            name="Valeros", 
-            race="Fighter", 
-            class_role="Frontliner", 
+            name="Valeros",
+            race="Fighter",
+            class_role="Frontliner",
             is_pc=True
         )
         pc_id = save_character(hero)
@@ -27,11 +29,11 @@ def run_integration_test():
 
         # 3. Test Magic Item Creation
         sword = Item(
-            name="Sun Blade", 
-            category="Weapon", 
-            is_magical=True, 
-            rarity="Rare", 
-            value_gp=5000, 
+            name="Sun Blade",
+            category="Weapon",
+            is_magical=True,
+            rarity="Rare",
+            value_gp=5000,
             weight=3,
             description="A blade of pure primary radiance."
         )
@@ -40,13 +42,13 @@ def run_integration_test():
 
         # 4. Test Monster Creation
         goblin = Creature(
-            name="Goblin", 
-            size="Small", 
-            creature_type="Humanoid", 
-            alignment="Neutral Evil", 
-            ac=15, 
-            hp=7, 
-            cr=0.25, 
+            name="Goblin",
+            size="Small",
+            creature_type="Humanoid",
+            alignment="Neutral Evil",
+            ac=15,
+            hp=7,
+            cr=0.25,
             xp=50
         )
         monster_id = save_creature(goblin)
@@ -57,5 +59,29 @@ def run_integration_test():
     except Exception as e:
         print(f"\n[ERROR] Test failed: {e}")
 
+
 if __name__ == "__main__":
     run_integration_test()
+
+
+def test_reading_data():
+    print("--- Testing Database Read & Search ---")
+
+    # 1. Test "Get All"
+    all_chars = get_all_characters()
+    print(f"Found {len(all_chars)} characters in the database:")
+    for c in all_chars:
+        print(f" - {c.name} ({c.race} {c.class_role})")
+
+    # 2. Test "Search"
+    print("\nSearching for 'Durnan'...")
+    results = find_character_by_name("Durnan")
+    if results:
+        print(f"SUCCESS: Found {results[0].name}!")
+        print(f"Notes: {results[0].notes}")
+    else:
+        print("FAILED: Could not find Durnan.")
+
+
+if __name__ == "__main__":
+    test_reading_data()
