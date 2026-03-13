@@ -72,7 +72,7 @@ def import_from_csv(table_name, file_name):
                 elif value.replace('.', '', 1).isdigit():
                     row[key] = float(value)
 
-            insert_record(table_name, row)
+            add_record(table_name, row)
     print(f"[SUCCESS] Imported data into {table_name}!")
 
 
