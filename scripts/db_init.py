@@ -3,43 +3,40 @@ import os
 
 
 def initialize_db():
-    # Ensure the script targets the 'data' folder regardless of where it's run
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(base_dir, '..', 'data', 'campaign_base.db')
 
-    # Create the data directory if it doesn't exist
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     print(f"Initializing database at: {db_path}")
 
-    # 1. Characters Table (PCs and NPCs)
+    # 1. Characters Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS characters (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    race TEXT,
-    subrace TEXT,
-    class_role TEXT,
-    subclass TEXT,
-    level_cr INTEGER,
-    is_pc BOOLEAN,
-    affiliation TEXT,
-    notes TEXT,
-    strength INTEGER DEFAULT 10,
-    dexterity INTEGER DEFAULT 10,
-    constitution INTEGER DEFAULT 10,
-    intelligence INTEGER DEFAULT 10,
-    wisdom INTEGER DEFAULT 10,
-    charisma INTEGER DEFAULT 10,
-    ac INTEGER DEFAULT 10,
-    hp INTEGER DEFAULT 10
-);
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            race TEXT,
+            subrace TEXT,
+            class_role TEXT,
+            subclass TEXT,
+            level_cr INTEGER,
+            is_pc BOOLEAN,
+            affiliation TEXT,
+            notes TEXT,
+            strength INTEGER DEFAULT 10,
+            dexterity INTEGER DEFAULT 10,
+            constitution INTEGER DEFAULT 10,
+            intelligence INTEGER DEFAULT 10,
+            wisdom INTEGER DEFAULT 10,
+            charisma INTEGER DEFAULT 10,
+            ac INTEGER DEFAULT 10,
+            hp INTEGER DEFAULT 10
+        );
     ''')
 
-    # 2. Bestiary Table (Monsters and Creatures)
+    # 2. Bestiary Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS bestiary (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,16 +47,17 @@ def initialize_db():
             ac INTEGER,
             hp INTEGER,
             cr REAL,
-            xp INTEGER
+            xp INTEGER,
+            notes TEXT
         )
     ''')
 
-    # 3. Items Table (RItems and MItems)
+    # 3. Items Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            category TEXT, -- e.g., Weapon, Armor, Wondrous
+            category TEXT,
             is_magical BOOLEAN DEFAULT 0,
             rarity TEXT DEFAULT 'Common',
             value_gp REAL,
@@ -69,9 +67,23 @@ def initialize_db():
         )
     ''')
 
+    # 4. Locations Table (Added with Parent support)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS locations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            location_type TEXT,
+            region TEXT,
+            description TEXT,
+            notes TEXT,
+            parent_id INTEGER,
+            FOREIGN KEY (parent_id) REFERENCES locations (id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
-    print("Success: All tables created.")
+    print("Success: All tables (Characters, Bestiary, Items, Locations) created.")
 
 
 if __name__ == "__main__":
