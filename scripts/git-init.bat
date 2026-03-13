@@ -1,4 +1,7 @@
 @echo off
+:: Making sure the script is run from the project root directory
+CD ..
+
 echo [1/5] Initializing Git Repository...
 git init
 

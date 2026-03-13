@@ -1,4 +1,7 @@
 @echo off
+:: Making sure the script is run from the project root directory
+CD ..
+
 set /p commit_msg="Enter commit comment: "
 
 :: Check if the user actually entered a message
