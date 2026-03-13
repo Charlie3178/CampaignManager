@@ -26,7 +26,8 @@ def category_menu(title, table_name):
         print("3. Edit")
         print("4. List All")
         print("5. Search (Name/ID)")
-        print("6. Back to Main Menu")
+        print("6.Database Management")
+        print("0. Back to Main Menu")
 
         choice = input("\nSelection: ")
 
@@ -41,33 +42,34 @@ def category_menu(title, table_name):
         elif choice == '5':
             menu_scripts.handle_search(table_name)
         elif choice == '6':
+            menu_scripts.handle_db_management()
+        elif choice == '0':
             break
 
 
 def main_menu():
     while True:
-        print("\n===============================")
-        print("    CAMPAIGN MANAGER - V1.0")
-        print("===============================")
-        print("1. Characters")
-        print("2. Creatures")
-        print("3. Items")
-        print("4. Locations")
-        print("5. Exit")
-        print("-------------------------------")
+        print("\n=== CAMPAIGN MANAGER HUB ===")
+        print("1. Character Records")
+        print("2. Bestiary (Monsters)")
+        print("3. Item Compendium")
+        print("4. Location Atlas")
+        print("5. Database Management")  # New Option
+        print("0. Exit")
 
-        choice = input("Selection: ")
+        choice = input("\nSelection: ")
 
         if choice == '1':
-            category_menu("Character Management", "characters")
+            category_menu("Characters", "characters")
         elif choice == '2':
-            category_menu("Monster Bestiary", "bestiary")
+            category_menu("Bestiary", "bestiary")
         elif choice == '3':
-            category_menu("Item Compendium", "items")
+            category_menu("Items", "items")
         elif choice == '4':
-            category_menu("Location Atlas", "locations")
+            category_menu("Locations", "locations")
         elif choice == '5':
-            print("Exiting...")
+            menu_scripts.handle_db_management()
+        elif choice == '0':
             break
 
 

@@ -1,4 +1,6 @@
 from utils.db_handler import add_record, get_connection, find_by_hybrid, delete_by_id, update_record
+from utils.db_handler import export_table_to_csv, import_from_csv
+from scripts import db_init
 
 
 def handle_list_all(table_name):
@@ -40,10 +42,20 @@ def handle_create(category, edit_func):
     if category == 'characters':
         data['name'] = input("Name: ")
         data['race'] = input("Race: ")
+        data['subrace'] = input("Subrace: ")
         data['class_role'] = input("Class/Role: ")
+        data['subclass'] = input("Subclass: ")
         data['level_cr'] = edit_func("Level/CR", 1)
         data['hp'] = edit_func("Hit Points", 10)
         data['ac'] = edit_func("AC", 10)
+        data['strength'] = edit_func("Strength", 10)
+        data['dexterity'] = edit_func("Dexterity", 10)
+        data['constitution'] = edit_func("Constitution", 10)
+        data['intelligence'] = edit_func("Intelligence", 10)
+        data['wisdom'] = edit_func("Wisdom", 10)
+        data['charisma'] = edit_func("Charisma", 10)
+        data['is_pc'] = 1 if input(
+            "Is this a PC? (y/n): ").lower() == 'y' else 0
         data['affiliation'] = input("Affiliation: ")
         data['notes'] = input("Notes: ")
 
@@ -52,20 +64,28 @@ def handle_create(category, edit_func):
         data['size'] = input("Size: ")
         data['creature_type'] = input("Type: ")
         data['alignment'] = input("Alignment: ")
-        data['hp'] = edit_func("Hit Points", 10)
         data['ac'] = edit_func("AC", 10)
-        data['cr'] = edit_func("CR", 0)
+        data['hp'] = edit_func("Hit Points", 10)
+        data['cr'] = edit_func("CR", 0.0)
         data['xp'] = edit_func("XP Value", 100)
+        data['num_attacks'] = edit_func("Number of Attacks", 1)
+        data['damage'] = input("Damage (e.g., 1d8+2): ")
         data['notes'] = input("Actions/Notes: ")
 
     elif category == 'items':
         data['name'] = input("Item Name: ")
         data['category'] = input("Category: ")
-        data['rarity'] = input("Rarity: ")
-        data['value_gp'] = edit_func("Value (gp)", 0)
-        data['weight'] = edit_func("Weight (lbs)", 0)
         data['is_magical'] = 1 if input(
             "Magical? (y/n): ").lower() == 'y' else 0
+        data['rarity'] = input("Rarity: ")
+        data['pp'] = edit_func("Platinum (pp)", 0)
+        data['gp'] = edit_func("Gold (gp)", 0)
+        data['ep'] = edit_func("Electrum (ep)", 0)
+        data['sp'] = edit_func("Silver (sp)", 0)
+        data['cp'] = edit_func("Copper (cp)", 0)
+        data['weight'] = edit_func("Weight (lbs)", 0.0)
+        data['requires_attunement'] = 1 if input(
+            "Requires Attunement? (y/n): ").lower() == 'y' else 0
         data['description'] = input("Description: ")
 
     elif category == 'locations':
@@ -84,37 +104,63 @@ def handle_create(category, edit_func):
 
 
 def display_details(table_name, data):
-    """Formatted output for Search/Edit views."""
+    """Formatted output for Search/Edit views including the Database ID."""
     print("\n" + "="*45)
+    # The header now clearly shows NAME and ID
     print(f" {data['name'].upper()} (ID: {data['id']})")
     print("="*45)
 
     if table_name == 'characters':
-        print(f"Race: {data['race']} | Class: {data['class_role']}")
+        pc_tag = "[PC]" if data['is_pc'] else "[NPC]"
         print(
-            f"Level: {data['level_cr']} | HP: {data['hp']} | AC: {data['ac']}")
+            f"{pc_tag} {data['race']} {data['subrace']} | {data['class_role']} ({data['subclass']})")
+        print(
+            f"Level/CR: {data['level_cr']} | HP: {data['hp']} | AC: {data['ac']}")
+        print(
+            f"Stats: S:{data['strength']} D:{data['dexterity']} C:{data['constitution']} I:{data['intelligence']} W:{data['wisdom']} Ch:{data['charisma']}")
         print(f"Affiliation: {data['affiliation']}")
 
     elif table_name == 'bestiary':
         print(
-            f"Type: {data['size']} {data['creature_type']} | {data['alignment']}")
+            f"Type: {data['size']} {data['creature_type']} | Alignment: {data['alignment']}")
         print(
             f"CR: {data['cr']} | HP: {data['hp']} | AC: {data['ac']} | XP: {data['xp']}")
+        # --- New Bestiary Fields ---
+        print(f"Attacks: {data['num_attacks']} | Damage: {data['damage']}")
 
     elif table_name == 'items':
-        print(f"Type: {data['category']} | Rarity: {data['rarity']}")
-        print(f"Value: {data['value_gp']} gp | Weight: {data['weight']} lbs")
+        magical = "YES" if data['is_magical'] else "NO"
+        attune = "YES" if data['requires_attunement'] else "NO"
+        print(f"Category: {data['category']} | Rarity: {data['rarity']}")
+
+        # --- Clean Currency Display (Hides Zeros) ---
+        coins = []
+        for den in ['pp', 'gp', 'ep', 'sp', 'cp']:
+            if data[den] > 0:
+                coins.append(f"{data[den]}{den}")
+        val_str = ", ".join(coins) if coins else "0gp"
+
+        print(f"Value: {val_str} | Weight: {data['weight']} lbs")
+        print(f"Magical: {magical} | Attunement Required: {attune}")
 
     elif table_name == 'locations':
         print(f"Type: {data['location_type']} | Region: {data['region']}")
         if data['parent_id']:
-            print(f"Inside Location ID: {data['parent_id']}")
+            print(f"Located Inside (Parent ID): {data['parent_id']}")
 
     print("-" * 45)
-    # Handle different column names for notes/desc
-    notes_val = data['notes'] if 'notes' in data.keys(
-    ) else data['description']
-    print(f"NOTES: {notes_val}")
+
+# Access columns directly by name instead of using .get()
+    if table_name == 'locations':
+        # Locations has both description AND notes
+        print(f"DESCRIPTION: {data['description']}")
+        print(f"NOTES: {data['notes']}")
+    elif table_name == 'items':
+        print(f"DESCRIPTION: {data['description']}")
+    else:
+        # Characters and Bestiary use 'notes'
+        print(f"NOTES: {data['notes']}")
+
     print("="*45)
 
 
@@ -158,3 +204,39 @@ def handle_edit(table_name, edit_func):
 
     update_record(table_name, item['id'], updates)
     print(f"\n[SUCCESS] {item['name']} updated!")
+
+
+def handle_db_management():
+    """Submenu for bulk data operations and database maintenance."""
+    while True:
+        print("\n--- DATABASE MANAGEMENT ---")
+        print("1. Export All Templates (CSV)")
+        print("2. Import Data from CSV")
+        print("3. Initialize/Reset Database")
+        print("0. Back to Main Menu")
+
+        choice = input("\nSelection: ")
+
+        if choice == '1':
+            tables = ['characters', 'bestiary', 'items', 'locations']
+            for table in tables:
+                export_table_to_csv(table)
+            print("\n[!] Templates/Backups generated in project folder.")
+
+        elif choice == '2':
+            table = input(
+                "Target Table (characters/bestiary/items/locations): ").lower()
+            file_path = input("Enter CSV filename: ")
+            try:
+                import_from_csv(table, file_path)
+            except Exception as e:
+                print(f"[!] Error during import: {e}")
+
+        elif choice == '3':
+            confirm = input("Are you SURE? This wipes all data! (y/n): ")
+            if confirm.lower() == 'y':
+                db_init.initialize_db
+                print("\n[!] Database reset to factory settings.")
+
+        elif choice == '0':
+            break
