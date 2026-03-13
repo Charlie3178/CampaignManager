@@ -17,12 +17,18 @@ def save_character(character):
 
     if character.db_id is None:
         # Create a new record
-        query = '''
-            INSERT INTO characters (name, race, class_role, level_cr, is_pc, affiliation, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        '''
-        params = (character.name, character.race, character.class_role,
-                  character.level_cr, character.is_pc, character.affiliation, character.notes)
+        query = '''INSERT INTO characters (
+            name, race, subrace, class_role, subclass, level_cr, is_pc, affiliation, notes,
+            strength, dexterity, constitution, intelligence, wisdom, charisma, ac, hp
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+
+        params = (
+            character.name, character.race, character.subrace, character.class_role,
+            character.subclass, character.level_cr, character.is_pc, character.affiliation,
+            character.notes, character.strength, character.dexterity, character.constitution,
+            character.intelligence, character.wisdom, character.charisma, character.ac, character.hp
+        )
+
         cursor.execute(query, params)
         character.db_id = cursor.lastrowid  # Update the object with its new ID
     else:
@@ -115,56 +121,71 @@ if __name__ == "__main__":
 
 
 def get_all_characters():
-    """Retrieves all characters and returns them as a list of Character objects."""
     conn = get_connection()
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
-    cursor.execute('SELECT * FROM characters')
+    cursor.execute("SELECT * FROM characters")
     rows = cursor.fetchall()
 
     characters = []
     for row in rows:
+        # Map every column to the Character constructor
         char = Character(
+            db_id=row['id'],
             name=row['name'],
             race=row['race'],
+            subrace=row['subrace'],  # NEW
             class_role=row['class_role'],
+            subclass=row['subclass'],  # NEW
             level_cr=row['level_cr'],
             is_pc=bool(row['is_pc']),
             affiliation=row['affiliation'],
             notes=row['notes'],
-            db_id=row['id']
+            strength=row['strength'],  # NEW
+            dexterity=row['dexterity'],
+            constitution=row['constitution'],
+            intelligence=row['intelligence'],
+            wisdom=row['wisdom'],
+            charisma=row['charisma'],
+            ac=row['ac'],
+            hp=row['hp']
         )
-        characters.append(char)  # This is inside the loop
-
-    conn.close()  # This is outside the loop
-    return characters  # This is outside the loop, lined up with 'conn = ...'
-
-
-def find_character_by_name(name_query):
-    """Finds characters whose names contain the search string."""
-    conn = get_connection()
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    # We use LIKE with % wildcards so 'Grog' finds 'Grogory' or 'Grog the Tall'
-    query = 'SELECT * FROM characters WHERE name LIKE ?'
-    cursor.execute(query, (f'%{name_query}%',))
-
-    rows = cursor.fetchall()
-    characters = []
-
-    for row in rows:
-        characters.append(Character(
-            name=row['name'],
-            race=row['race'],
-            class_role=row['class_role'],
-            level_cr=row['level_cr'],
-            is_pc=bool(row['is_pc']),
-            affiliation=row['affiliation'],
-            notes=row['notes'],
-            db_id=row['id']
-        ))
+        characters.append(char)
 
     conn.close()
     return characters
+
+
+def find_character_by_name(name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Using LIKE for partial matches (e.g., 'Uug' finds 'Uug'thar')
+    query = "SELECT * FROM characters WHERE name LIKE ?"
+    cursor.execute(query, (f"%{name}%",))
+    rows = cursor.fetchall()
+
+    results = []
+    for row in rows:
+        char = Character(
+            db_id=row['id'],
+            name=row['name'],
+            race=row['race'],
+            subrace=row['subrace'],
+            class_role=row['class_role'],
+            subclass=row['subclass'],
+            level_cr=row['level_cr'],
+            is_pc=bool(row['is_pc']),
+            affiliation=row['affiliation'],
+            notes=row['notes'],
+            strength=row['strength'],
+            dexterity=row['dexterity'],
+            constitution=row['constitution'],
+            intelligence=row['intelligence'],
+            wisdom=row['wisdom'],
+            charisma=row['charisma'],
+            ac=row['ac'],
+            hp=row['hp']
+        )
+        results.append(char)
+
+    conn.close()
+    return results
