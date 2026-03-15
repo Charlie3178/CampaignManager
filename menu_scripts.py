@@ -4,17 +4,39 @@ from scripts import db_init
 
 
 def handle_list_all(table_name):
-    """Lists ID and Name for any table."""
+    """Lists ID and Name for any table, with special formatting for Bestiary."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(f"SELECT id, name FROM {table_name}")
-    rows = cursor.fetchall()
 
-    print(f"\n--- {table_name.upper()} LIST ---")
-    print(f"{'ID':<4} | {'NAME'}")
-    print("-" * 30)
-    for row in rows:
-        print(f"{row['id']:<4} | {row['name']}")
+    # Custom query for Bestiary to show CR and Type
+    if table_name == 'creatures':
+        cursor.execute(f"SELECT id, name, cr, creature_type FROM {table_name}")
+        rows = cursor.fetchall()
+        print(f"\n--- BESTIARY SUMMARY ---")
+        print(f"{'ID':<4} | {'NAME':<25} | {'CR':<5} | {'TYPE'}")
+        print("-" * 55)
+        for row in rows:
+            print(
+                f"{row['id']:<4} | {row['name']:<25} | {row['cr']:<5} | {row['creature_type']}")
+    elif table_name == 'items':
+        cursor.execute(f"SELECT id, name, category, rarity FROM {table_name}")
+        rows = cursor.fetchall()
+        print(f"\n--- EQUIPMENT & ITEMS ---")
+        print(f"{'ID':<4} | {'NAME':<30} | {'CATEGORY':<15} | {'RARITY'}")
+        print("-" * 65)
+        for row in rows:
+            print(
+                f"{row['id']:<4} | {row['name']:<30} | {row['category']:<15} | {row['rarity']}")
+    else:
+        # Keep your original logic for other tables
+        cursor.execute(f"SELECT id, name FROM {table_name}")
+        rows = cursor.fetchall()
+        print(f"\n--- {table_name.upper()} LIST ---")
+        print(f"{'ID':<4} | {'NAME'}")
+        print("-" * 30)
+        for row in rows:
+            print(f"{row['id']:<4} | {row['name']}")
+
     conn.close()
 
 
@@ -43,20 +65,27 @@ def handle_create(category, edit_func):
         data['name'] = input("Name: ")
         data['race'] = input("Race: ")
         data['subrace'] = input("Subrace: ")
-        data['class_role'] = input("Class/Role: ")
+        # Matches your db_init schema
+        data['class_or_role'] = input("Class/Role: ")
         data['subclass'] = input("Subclass: ")
-        data['level_cr'] = edit_func("Level/CR", 1)
-        data['hp'] = edit_func("Hit Points", 10)
+        data['level'] = edit_func("Level", 1)  # Matches your db_init schema
+        data['hp_max'] = edit_func("Max HP", 10)
+        data['hp_current'] = data['hp_max']  # Set current to max by default
         data['ac'] = edit_func("AC", 10)
-        data['strength'] = edit_func("Strength", 10)
-        data['dexterity'] = edit_func("Dexterity", 10)
-        data['constitution'] = edit_func("Constitution", 10)
-        data['intelligence'] = edit_func("Intelligence", 10)
-        data['wisdom'] = edit_func("Wisdom", 10)
-        data['charisma'] = edit_func("Charisma", 10)
+
+        # Adding the 6 core stats
+        data['strength'] = edit_func("Str", 10)
+        data['dexterity'] = edit_func("Dex", 10)
+        data['constitution'] = edit_func("Con", 10)
+        data['intelligence'] = edit_func("Int", 10)
+        data['wisdom'] = edit_func("Wis", 10)
+        data['charisma'] = edit_func("Cha", 10)
+
+        data['disposition'] = input("Disposition (Friendly/Hostile/etc): ")
         data['is_pc'] = 1 if input(
             "Is this a PC? (y/n): ").lower() == 'y' else 0
         data['affiliation'] = input("Affiliation: ")
+        data['backstory'] = input("Backstory: ")
         data['notes'] = input("Notes: ")
 
     elif category == 'bestiary':
