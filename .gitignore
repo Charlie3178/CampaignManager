@@ -6,3 +6,5 @@ __pycache__/
 *.csv
 *.pptx
 *.docx
+.tmp*
+desktop.ini

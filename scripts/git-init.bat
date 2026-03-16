@@ -12,6 +12,11 @@ echo *.pyc
 echo *.db
 echo .env
 echo .vscode/
+echo *.csv
+echo *.pptx
+echo *.docx
+echo .tmp*
+echo desktop.ini
 ) > .gitignore
 
 echo [3/5] Adding files...
@@ -26,3 +31,5 @@ git branch -M main
 echo.
 echo Repository initialized successfully.
 pause
+
+

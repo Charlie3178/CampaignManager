@@ -19,5 +19,9 @@ echo [Committing with message: %commit_msg%]
 git commit -m "%commit_msg%"
 
 echo.
+echo [Pushing to GitHub...]
+git push origin main
+
+echo.
 echo [Done!]
 pause
