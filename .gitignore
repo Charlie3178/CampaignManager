@@ -8,3 +8,5 @@ __pycache__/
 *.docx
 .tmp*
 desktop.ini
+test_roller.py
+projecttree.txt

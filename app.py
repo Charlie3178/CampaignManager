@@ -26,13 +26,13 @@ def category_menu(title, table_name):
         print("3. Edit")
         print("4. List All")
         print("5. Search (Name/ID)")
-        print("6.Database Management")
+        print("6. View Character")
         print("0. Back to Main Menu")
 
         choice = input("\nSelection: ")
 
         if choice == '1':
-            menu_scripts.handle_create(table_name, edit_val)
+            menu_scripts.run_character_wizard()
         elif choice == '2':
             menu_scripts.handle_delete(table_name)
         elif choice == '3':
@@ -42,7 +42,7 @@ def category_menu(title, table_name):
         elif choice == '5':
             menu_scripts.handle_search(table_name)
         elif choice == '6':
-            menu_scripts.handle_db_management()
+            menu_scripts.handle_view_character()
         elif choice == '0':
             break
 

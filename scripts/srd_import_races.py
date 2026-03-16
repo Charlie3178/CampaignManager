@@ -5,7 +5,7 @@ import requests
 
 # Standard path logic
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign_base.db')
+DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign.db')
 SOURCE_JSON = os.path.join(
     BASE_DIR, 'data', 'API Endpoints', 'SRD-5e-Races.json')
 BASE_URL = "https://www.dnd5eapi.co"

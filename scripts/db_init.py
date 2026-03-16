@@ -6,7 +6,7 @@ def get_db_path():
     # Since this is in /scripts, go UP to root, then DOWN to /data
     base_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(base_dir)
-    return os.path.normpath(os.path.join(project_root, 'data', 'campaign_base.db'))
+    return os.path.normpath(os.path.join(project_root, 'data', 'campaign.db'))
 
 
 def initialize_db():
@@ -17,8 +17,11 @@ def initialize_db():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Drop existing tables to apply new schema changes
-    tables = ['characters', 'bestiary', 'items', 'locations']
+    tables = [
+        'characters', 'bestiary', 'items', 'locations',
+        'creatures', 'races', 'subraces', 'classes',
+        'subclasses', 'lore_history', 'dm_notes', 'class_features'
+    ]
     for table in tables:
         cursor.execute(f"DROP TABLE IF EXISTS {table}")
 
@@ -31,6 +34,12 @@ def initialize_db():
         class_or_role TEXT,      -- e.g., 'Level 5 Paladin' or 'Shopkeeper'
         level INTEGER DEFAULT 1,
         alignment TEXT,
+        strength INTEGER,
+        dexterity INTEGER,
+        constitution INTEGER,
+        intelligence INTEGER,
+        wisdom INTEGER,
+        charisma INTEGER,
         hp_max INTEGER,
         hp_current INTEGER,
         ac INTEGER,
@@ -96,15 +105,13 @@ def initialize_db():
         )''')
 
 
-# 5 Classes Table
+# --- TABLE 5: CLASSES (Updated) ---
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS classes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             class_name TEXT NOT NULL,
-            hit_die TEXT,          -- e.g., 'd10'
-            primary_ability TEXT,  -- e.g., 'Strength'
-            description TEXT,
-            features TEXT          -- A big text block of class abilities
+            hit_die TEXT,
+            proficiencies TEXT  -- Added this column
         )
     ''')
 
@@ -158,7 +165,6 @@ def initialize_db():
             class_id INTEGER,     -- Links to classes.id
             name TEXT NOT NULL,
             flavor_text TEXT,
-            features TEXT,        -- Key abilities gained
             FOREIGN KEY (class_id) REFERENCES classes (id)
         )
     ''')
@@ -188,15 +194,18 @@ def initialize_db():
         )
 ''')
 
-# 12. Class Features (The engine for Step 7 of your Creator)
+# 12. New Centralized Features Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS class_features (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            class_id INTEGER,
             feature_name TEXT NOT NULL,
             level_required INTEGER,
             description TEXT,
-            FOREIGN KEY (class_id) REFERENCES classes (id)
+            source_type TEXT, -- e.g., 'Class' or 'Subclass'
+            class_id INTEGER,
+            subclass_id INTEGER,
+            FOREIGN KEY (class_id) REFERENCES classes (id),
+            FOREIGN KEY (subclass_id) REFERENCES subclasses (id)
         )
 ''')
 

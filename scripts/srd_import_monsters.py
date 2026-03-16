@@ -7,7 +7,7 @@ import time
 # This finds the absolute path to the 'scripts' folder where this file lives
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Now it builds the path from the root, regardless of where you run it from
-DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign_base.db')
+DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign.db')
 SOURCE_JSON = os.path.join(
     BASE_DIR, 'data', 'API Endpoints', 'SRD-5e-Monsters.json')
 BASE_URL = "https://www.dnd5eapi.co"

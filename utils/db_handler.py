@@ -8,7 +8,7 @@ def get_connection():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(base_dir)
     db_path = os.path.normpath(os.path.join(
-        project_root, 'data', 'campaign_base.db'))
+        project_root, 'data', 'campaign.db'))
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -51,17 +51,18 @@ def export_table_to_csv(table_name):
 
 
 def import_from_csv(table_name, file_name):
-    # Get the project root from this file's location (utils/db_handler.py)
+    # 1. Calculate path (Get the project root from this file's location)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(base_dir)
 
-    # Force the search into the 'data' folder
+    # 2. Force the search into the 'data' folder
     file_path = os.path.normpath(os.path.join(project_root, 'data', file_name))
 
     if not os.path.exists(file_path):
         print(f"[!] File not found in data folder: {file_name}")
         return
 
+    # 3. Open and Process File
     with open(file_path, mode='r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -70,9 +71,15 @@ def import_from_csv(table_name, file_name):
                 if value.isdigit():
                     row[key] = int(value)
                 elif value.replace('.', '', 1).isdigit():
-                    row[key] = float(value)
+                    try:
+                        row[key] = float(value)
+                    except ValueError:
+                        pass  # Keep as string if it's not actually a float
 
+            # 4. Use your existing add_record function to save to DB
             add_record(table_name, row)
+
+    # IMPORTANT: This print must be indented inside the function
     print(f"[SUCCESS] Imported data into {table_name}!")
 
 

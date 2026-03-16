@@ -6,7 +6,7 @@ import requests
 # This finds the absolute path to the 'scripts' folder where this file lives
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Now it builds the path from the root, regardless of where you run it from
-DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign_base.db')
+DB_PATH = os.path.join(BASE_DIR, 'data', 'campaign.db')
 SOURCE_JSON = os.path.join(
     BASE_DIR, 'data', 'API Endpoints', 'SRD-5e-Classes.json')
 BASE_URL = "https://www.dnd5eapi.co"
@@ -24,17 +24,18 @@ def run_class_importer():
     cursor = conn.cursor()
 
     for item in class_list:
-        # Fetch detailed info for each class
         res = requests.get(BASE_URL + item['url']).json()
 
-        cursor.execute('''
-            INSERT INTO classes (class_name, hit_die, primary_ability, features)
-            VALUES (?, ?, ?, ?)
+        # Join proficiencies into a single string
+        prof_string = ", ".join([p['name']
+                                for p in res.get('proficiencies', [])])
+
+        cursor.execute('''INSERT INTO classes (class_name, hit_die, proficiencies)
+            VALUES (?, ?, ?)
         ''', (
             res.get('name'),
             f"d{res.get('hit_die')}",
-            "Multiple",  # Can be refined later
-            ", ".join([p['name'] for p in res.get('proficiencies', [])])
+            prof_string
         ))
         print(f"[>] Imported Class: {res.get('name')}")
 
