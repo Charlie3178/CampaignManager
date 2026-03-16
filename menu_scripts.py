@@ -18,6 +18,7 @@ def handle_list_all(table_name):
         for row in rows:
             print(
                 f"{row['id']:<4} | {row['name']:<25} | {row['cr']:<5} | {row['creature_type']}")
+
     elif table_name == 'items':
         cursor.execute(f"SELECT id, name, category, rarity FROM {table_name}")
         rows = cursor.fetchall()
@@ -27,6 +28,17 @@ def handle_list_all(table_name):
         for row in rows:
             print(
                 f"{row['id']:<4} | {row['name']:<30} | {row['category']:<15} | {row['rarity']}")
+
+    elif table_name == 'spells':
+        cursor.execute(f"SELECT id, name, level, school FROM {table_name}")
+        rows = cursor.fetchall()
+        print(f"\n--- SPELLBOOK SUMMARY ---")
+        print(f"{'ID':<4} | {'NAME':<30} | {'LVL':<4} | {'SCHOOL'}")
+        print("-" * 55)
+        for row in rows:
+            print(
+                f"{row['id']:<4} | {row['name']:<30} | {row['level']:<4} | {row['school']}")
+
     else:
         # Keep your original logic for other tables
         cursor.execute(f"SELECT id, name FROM {table_name}")
@@ -88,7 +100,7 @@ def handle_create(category, edit_func):
         data['backstory'] = input("Backstory: ")
         data['notes'] = input("Notes: ")
 
-    elif category == 'bestiary':
+    elif category == 'creatures':
         data['name'] = input("Creature Name: ")
         data['size'] = input("Size: ")
         data['creature_type'] = input("Type: ")
@@ -149,7 +161,7 @@ def display_details(table_name, data):
             f"Stats: S:{data['strength']} D:{data['dexterity']} C:{data['constitution']} I:{data['intelligence']} W:{data['wisdom']} Ch:{data['charisma']}")
         print(f"Affiliation: {data['affiliation']}")
 
-    elif table_name == 'bestiary':
+    elif table_name == 'creatures':
         print(
             f"Type: {data['size']} {data['creature_type']} | Alignment: {data['alignment']}")
         print(
@@ -239,7 +251,7 @@ def handle_db_management():
     """Submenu for bulk data operations and database maintenance."""
     while True:
         print("\n--- DATABASE MANAGEMENT ---")
-        print("1. Export All Templates (CSV)")
+        print("1. Export All Tables (Golden Backup)")
         print("2. Import Data from CSV")
         print("3. Initialize/Reset Database")
         print("0. Back to Main Menu")
@@ -247,25 +259,34 @@ def handle_db_management():
         choice = input("\nSelection: ")
 
         if choice == '1':
-            tables = ['characters', 'bestiary', 'items', 'locations']
+            # Updated to include your full 9-table schema
+            tables = [
+                'characters', 'creatures', 'items', 'locations',
+                'classes', 'races', 'spells', 'subclasses', 'subraces'
+            ]
             for table in tables:
-                export_table_to_csv(table)
-            print("\n[!] Templates/Backups generated in project folder.")
+                try:
+                    export_table_to_csv(table)
+                except Exception as e:
+                    print(f" [!] Failed to export {table}: {e}")
+            print("\n[SUCCESS] All data backed up to the project folder.")
 
         elif choice == '2':
-            table = input(
-                "Target Table (characters/bestiary/items/locations): ").lower()
+            print("\nTables: characters, creatures, items, locations, classes, races, spells, subclasses, subraces")
+            table = input("Target Table: ").lower()
             file_path = input("Enter CSV filename: ")
             try:
                 import_from_csv(table, file_path)
+                print(f"\n[SUCCESS] {table} updated from {file_path}")
             except Exception as e:
                 print(f"[!] Error during import: {e}")
 
         elif choice == '3':
             confirm = input("Are you SURE? This wipes all data! (y/n): ")
             if confirm.lower() == 'y':
-                db_init.initialize_db
-                print("\n[!] Database reset to factory settings.")
+                # Corrected to use your initialize_db() function
+                db_init.initialize_db()
+                print("\n[!] Database has been reset to factory defaults.")
 
         elif choice == '0':
             break

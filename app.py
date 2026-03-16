@@ -51,7 +51,7 @@ def main_menu():
     while True:
         print("\n=== CAMPAIGN MANAGER HUB ===")
         print("1. Character Records")
-        print("2. Bestiary (Monsters)")
+        print("2. Creatures (Monsters)")
         print("3. Item Compendium")
         print("4. Location Atlas")
         print("5. Database Management")  # New Option
@@ -62,7 +62,7 @@ def main_menu():
         if choice == '1':
             category_menu("Characters", "characters")
         elif choice == '2':
-            category_menu("Bestiary", "bestiary")
+            category_menu("Creatures", "creatures")
         elif choice == '3':
             category_menu("Items", "items")
         elif choice == '4':
