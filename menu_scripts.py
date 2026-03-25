@@ -323,12 +323,12 @@ def run_character_wizard():
     db_path = os.path.join('data', 'campaign.db')
 
     # --- STEP 0: INITIAL IDENTITY & FLAG ---
-    is_pc = 1
+    is_player = 1
     npc_check = input("Is this an NPC? (y/n): ").lower()
     if npc_check == 'y':
-        is_pc = 0
+        is_player = 0
 
-    entity_label = "Character" if is_pc else "NPC"
+    entity_label = "Character" if is_player else "NPC"
     print(f"\n--- {entity_label} Creation Wizard ---")
 
     # --- DATABASE INIT (FIXED) ---
@@ -432,7 +432,7 @@ def run_character_wizard():
     char_name = input(f"Enter {entity_label} Name: ")
     alignment = input("Enter Alignment: ")
 
-    if not is_pc:
+    if not is_player:
         role_note = input("Enter NPC Role/Motivation: ")
         role_display = f"{role_display} ({role_note})"
 
@@ -445,7 +445,7 @@ def run_character_wizard():
         "hp_max": max_hp,
         "hp_current": max_hp,
         "ac": base_ac,
-        "is_pc": is_pc,
+        "is_pc": is_player,
         "strength": final_stats['Strength'],
         "dexterity": final_stats['Dexterity'],
         "constitution": final_stats['Constitution'],

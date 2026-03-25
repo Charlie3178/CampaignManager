@@ -134,7 +134,14 @@ def find_by_hybrid(table, search_input):
         cursor.execute(query, (f"%{search_input}%",))
     results = cursor.fetchall()
     conn.close()
-    return results
+
+    if results:
+        # TEMP DEBUG: Print the keys found in the first result
+        print(f"DEBUG: Columns found in {table}: {list(results[0].keys())}")
+        return results[0]
+    return None
+
+    # return results
 
 
 def get_all(table):
