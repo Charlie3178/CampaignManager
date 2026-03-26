@@ -32,7 +32,11 @@ def category_menu(title, table_name):
         choice = input("\nSelection: ")
 
         if choice == '1':
-            menu_scripts.run_character_wizard()
+            if table_name == 'characters':
+                menu_scripts.run_character_wizard()
+            else:
+                # New generic creator for Creatures, Items, etc.
+                menu_scripts.handle_create_generic(table_name)
         elif choice == '2':
             menu_scripts.handle_delete(table_name)
         elif choice == '3':

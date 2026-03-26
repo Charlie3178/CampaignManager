@@ -87,7 +87,7 @@ def bulk_import_all():
     """Look for standard template names in /data and import them."""
     mapping = {
         'characters_template.csv': 'characters',
-        'bestiary_template.csv': 'bestiary',
+        'creatures_template.csv': 'creatures',
         'items_template.csv': 'items',
         'locations_template.csv': 'locations'
     }

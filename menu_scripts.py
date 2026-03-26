@@ -1,21 +1,21 @@
 from utils.db_handler import add_record, get_connection, find_by_hybrid, delete_by_id, update_record
 from utils.db_handler import export_table_to_csv, import_from_csv
 from scripts import db_init
-from scripts.ability_score_roller import roll_stats, assign_stats, apply_racial_bonuses
+from utils.roller import roll_stats, assign_stats, apply_racial_bonuses
 import sqlite3
 import os
 
 
 def handle_list_all(table_name):
-    """Lists ID and Name for any table, with special formatting for Bestiary."""
+    """Lists ID and Name for any table, with special formatting for Creatures."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Custom query for Bestiary to show CR and Type
+    # Custom query for Creatures to show CR and Type
     if table_name == 'creatures':
         cursor.execute(f"SELECT id, name, cr, creature_type FROM {table_name}")
         rows = cursor.fetchall()
-        print(f"\n--- BESTIARY SUMMARY ---")
+        print(f"\n--- Creatures SUMMARY ---")
         print(f"{'ID':<4} | {'NAME':<25} | {'CR':<5} | {'TYPE'}")
         print("-" * 55)
         for row in rows:
@@ -80,24 +80,20 @@ def handle_create(category, edit_func):
         data['name'] = input("Name: ")
         data['race'] = input("Race: ")
         data['subrace'] = input("Subrace: ")
-        # Matches your db_init schema
-        data['class_or_role'] = input("Class/Role: ")
+        data['cclass'] = input("Class/Role: ")
         data['subclass'] = input("Subclass: ")
-        data['level'] = edit_func("Level", 1)  # Matches your db_init schema
-        data['hp_max'] = edit_func("Max HP", 10)
-        data['hp_current'] = data['hp_max']  # Set current to max by default
+        data['level'] = edit_func("Level", 1)
+        data['mhp'] = edit_func("Max HP", 10)
+        data['chp'] = data['mhp']
         data['ac'] = edit_func("AC", 10)
-
-        # Adding the 6 core stats
-        data['strength'] = edit_func("Str", 10)
-        data['dexterity'] = edit_func("Dex", 10)
-        data['constitution'] = edit_func("Con", 10)
-        data['intelligence'] = edit_func("Int", 10)
-        data['wisdom'] = edit_func("Wis", 10)
-        data['charisma'] = edit_func("Cha", 10)
-
+        data['str'] = edit_func("Str", 10)
+        data['dex'] = edit_func("Dex", 10)
+        data['con'] = edit_func("Con", 10)
+        data['int'] = edit_func("Int", 10)
+        data['wis'] = edit_func("Wis", 10)
+        data['cha'] = edit_func("Cha", 10)
         data['disposition'] = input("Disposition (Friendly/Hostile/etc): ")
-        data['is_pc'] = 1 if input(
+        data['pcc'] = 1 if input(
             "Is this a PC? (y/n): ").lower() == 'y' else 0
         data['affiliation'] = input("Affiliation: ")
         data['backstory'] = input("Backstory: ")
@@ -154,18 +150,16 @@ def display_details(table_name, data):
     print("="*45)
 
     if table_name == 'characters':
-        pc_tag = "[PC]" if data['is_pc'] else "[NPC]"
-        # FIXED: Changed 'class_role' to 'class_or_role'
-        print(f"{pc_tag} {data['race']} | {data['class_or_role']}")
+        pc_tag = "[PC]" if data['pcc'] else "[NPC]"
 
-        # FIXED: Changed 'level_cr' to 'level' and 'hp' to 'hp_max'
+        print(f"{pc_tag} {data['race']} | {data['cclass']}")
+
         char_level = data.get('level', 1)
-        print(f"Level: {char_level} | HP: {data['hp_max']} | AC: {data['ac']}")
+        print(f"Level: {char_level} | HP: {data['mhp']} | AC: {data['ac']}")
 
-        print(f"Stats: S:{data['strength']} D:{data['dexterity']} C:{data['constitution']} "
-              f"I:{data['intelligence']} W:{data['wisdom']} Ch:{data['charisma']}")
+        print(f"Stats: S:{data['str']} D:{data['dex']} C:{data['con']} "
+              f"I:{data['int']} W:{data['wis']} Ch:{data['cha']}")
 
-        # FIXED: Check if affiliation exists before printing (optional safeguard)
         if 'affiliation' in data:
             print(f"Affiliation: {data['affiliation']}")
 
@@ -216,7 +210,7 @@ def display_details(table_name, data):
     elif table_name == 'items':
         print(f"DESCRIPTION: {data['description']}")
     else:
-        # Characters and Bestiary use 'notes'
+        # Characters and Creatures use 'notes'
         print(f"NOTES: {data['notes']}")
 
     print("="*45)
@@ -271,6 +265,7 @@ def handle_db_management():
         print("1. Export All Tables (Golden Backup)")
         print("2. Import Data from CSV")
         print("3. Initialize/Reset Database")
+        print("4. Import SRD Data (Monsters & Spells)")
         print("0. Back to Main Menu")
 
         choice = input("\nSelection: ")
@@ -279,7 +274,9 @@ def handle_db_management():
             # Updated to include your full 9-table schema
             tables = [
                 'characters', 'creatures', 'items', 'locations',
-                'classes', 'races', 'spells', 'subclasses', 'subraces'
+                'classes', 'subclasses', 'races', 'subraces',
+                'spells', 'features', 'traits',
+                'equipment', 'proficiencies', 'languages'
             ]
             for table in tables:
                 try:
@@ -301,9 +298,17 @@ def handle_db_management():
         elif choice == '3':
             confirm = input("Are you SURE? This wipes all data! (y/n): ")
             if confirm.lower() == 'y':
-                # Corrected to use your initialize_db() function
                 db_init.initialize_db()
                 print("\n[!] Database has been reset to factory defaults.")
+
+        elif choice == '4':
+            print("\nFetching SRD Data... This may take a moment.")
+            try:
+                from scripts import import_srd
+                import_srd.import_all()
+                print("\n[SUCCESS] SRD Data (Creatures/Spells) imported.")
+            except Exception as e:
+                print(f"[!] Error during SRD import: {e}")
 
         elif choice == '0':
             break
@@ -312,10 +317,9 @@ def handle_db_management():
 def parse_hit_die(hd_string):
     """Converts '1d12' into 12, or '1d8' into 8."""
     try:
-        # Split at 'd' and take the second half
         return int(hd_string.lower().split('d')[1])
     except (ValueError, IndexError):
-        return 6  # Safe default if the DB entry is messy
+        return 6
 
 
 def run_character_wizard():
@@ -331,7 +335,6 @@ def run_character_wizard():
     entity_label = "Character" if is_player else "NPC"
     print(f"\n--- {entity_label} Creation Wizard ---")
 
-    # --- DATABASE INIT (FIXED) ---
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -339,7 +342,6 @@ def run_character_wizard():
     # --- STEP 1: CHOOSE RACE ---
     cursor.execute("SELECT id, name FROM races")
     races = cursor.fetchall()
-
     print(f"\n--- Step 1: Choose {entity_label} Race ---")
     for row in races:
         print(f"{row['id']}. {row['name']}")
@@ -352,7 +354,6 @@ def run_character_wizard():
     cursor.execute(
         "SELECT id, name FROM subraces WHERE race_id = ?", (race_choice,))
     subraces = cursor.fetchall()
-
     if subraces:
         print(
             f"\n--- Step 1.5: Choose {selected_base_race['name']} Subrace ---")
@@ -375,7 +376,6 @@ def run_character_wizard():
     # --- STEP 5: CHOOSE CLASS ---
     cursor.execute("SELECT id, class_name, hit_die FROM classes")
     classes = cursor.fetchall()
-
     print(f"\n--- Step 5: Choose {entity_label} Class ---")
     for row in classes:
         print(f"{row['id']}. {row['class_name']} ({row['hit_die']})")
@@ -388,7 +388,6 @@ def run_character_wizard():
     cursor.execute(
         "SELECT id, name FROM subclasses WHERE class_id = ?", (class_choice,))
     subclasses = cursor.fetchall()
-
     if subclasses:
         print(
             f"\n--- Step 5.5: Choose {selected_base_class['class_name']} Archetype ---")
@@ -401,12 +400,11 @@ def run_character_wizard():
     else:
         role_display = selected_base_class['class_name']
 
-    # Corrected variable name: selected_base_class
     hd_max = parse_hit_die(selected_base_class['hit_die'])
 
     # --- STEP 6: CALCULATE VITALS ---
     con_mod = (final_stats.get('Constitution', 10) - 10) // 2
-    max_hp = hd_max + con_mod
+    mhp = hd_max + con_mod
     dex_mod = (final_stats.get('Dexterity', 10) - 10) // 2
     base_ac = 10 + dex_mod
 
@@ -417,9 +415,7 @@ def run_character_wizard():
         FROM class_features 
         WHERE class_id = ? AND level_required = 1
     """, (class_choice,))
-
     features = cursor.fetchall()
-
     if features:
         feature_text = "\n--- LEVEL 1 FEATURES ---\n"
         for f in features:
@@ -431,7 +427,6 @@ def run_character_wizard():
     print(f"\n--- Step 7: Final Details ---")
     char_name = input(f"Enter {entity_label} Name: ")
     alignment = input("Enter Alignment: ")
-
     if not is_player:
         role_note = input("Enter NPC Role/Motivation: ")
         role_display = f"{role_display} ({role_note})"
@@ -440,26 +435,24 @@ def run_character_wizard():
     new_character = {
         "name": char_name,
         "race": selected_race_name,
-        "class_or_role": role_display,
+        "cclass": role_display,
         "alignment": alignment,
-        "hp_max": max_hp,
-        "hp_current": max_hp,
+        "mhp": mhp,
+        "chp": mhp,
         "ac": base_ac,
-        "is_pc": is_player,
-        "strength": final_stats['Strength'],
-        "dexterity": final_stats['Dexterity'],
-        "constitution": final_stats['Constitution'],
-        "intelligence": final_stats['Intelligence'],
-        "wisdom": final_stats['Wisdom'],
-        "charisma": final_stats['Charisma'],
+        "pc": is_player,
+        "str": final_stats['Strength'],
+        "dex": final_stats['Dexterity'],
+        "con": final_stats['Constitution'],
+        "int": final_stats['Intelligence'],
+        "wis": final_stats['Wisdom'],
+        "cha": final_stats['Charisma'],
         "notes": feature_text  # <--- Features automatically added here!
     }
 
     add_record('characters', new_character)
     conn.close()
-
     print(f"\n[SUCCESS] {char_name} has been added to Arcanryn!")
-
     return new_character
 
 
@@ -467,9 +460,7 @@ def handle_view_character():
     """Fetches a character from the DB and displays a formatted sheet."""
     search_term = input("\nEnter Character Name or ID to view: ")
 
-    # Using your existing hybrid finder
     char = find_by_hybrid('characters', search_term)
-
     if not char:
         print(f"No character found matching '{search_term}'.")
         return
@@ -478,38 +469,85 @@ def handle_view_character():
     print("\n" + "="*50)
     print(f" {char['name'].upper().center(48)} ")
     print("="*50)
-
     # Identity Line
-    pc_tag = "[PC]" if char['is_pc'] else "[NPC]"
+    pc_tag = "[PC]" if char['pc'] else "[NPC]"
     print(
-        f"{pc_tag} {char['race']} | {char['class_or_role']} | Level {char.get('level', 1)}")
-    print(f"Alignment: {char['alignment']}")
-    print("-" * 50)
-
+        f"{pc_tag} Race ID: {char['race']} | Class ID: {char['cclass']} | Level {char['lvl']}")
+    print(f" HP: {char['chp']}/{char['mhp']} ".center(24) +
+          f" AC: {char['ac']} ".center(24))
     # Vitals Section
     #
-    print(f" HP: {char['hp_current']}/{char['hp_max']} ".center(24) +
+    print(f" HP: {char['chp']}/{char['mhp']} ".center(24) +
           f" AC: {char['ac']} ".center(24))
     print("-" * 50)
-
     # Ability Scores & Modifiers
     #
     print(f"{'STAT':<12} | {'SCORE':<8} | {'MOD':<5}")
     print("-" * 30)
-
-    stats = ['strength', 'dexterity', 'constitution',
-             'intelligence', 'wisdom', 'charisma']
+    stats = ['str', 'dex', 'con',
+             'int', 'wis', 'cha']
     for stat in stats:
         score = char.get(stat, 10)
         modifier = (score - 10) // 2
         print(f"{stat.capitalize():<12} | {score:<8} | {modifier:+}")
-
     # Features and Notes
     if char.get('notes'):
         print("\n" + "-" * 50)
         print(" FEATURES & NOTES ")
         print("-" * 50)
         print(char['notes'])
-
     print("="*50)
     input("\nPress Enter to return to menu...")
+
+    # Generic creater for non-character tables
+
+
+def handle_create_generic(table_name):
+    # Dynamically asks for input based on table columns.
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Get column names (excluding 'id')
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = [row['name'] for row in cursor.fetchall() if row['name'] != 'id']
+    new_data = {}
+    print(f"\n--- Create New {table_name[:-1].capitalize()} ---")
+    for col in columns:
+        val = input(f"{col.replace('_', ' ').capitalize()}: ")
+        # Basic type conversion: if it looks like a number, make it one
+        if val.isdigit():
+            new_data[col] = int(val)
+        else:
+            new_data[col] = val
+    # Use your existing add_record utility
+    add_record(table_name, new_data)
+    print(f"Successfully added to {table_name}!")
+    conn.close()
+
+
+def handle_view_creature():
+    """Detailed Stat Block view for SRD and Homebrew creatures."""
+    search_term = input("\nEnter Creature Name or ID: ")
+    monster = find_by_hybrid('creatures', search_term)
+
+    if not monster:
+        print(f"Creature '{search_term}' not found.")
+        return
+
+    print("\n" + "="*50)
+    print(f" {monster['name'].upper()} (CR: {monster['cr']}) ".center(50))
+    print("-" * 50)
+    print(
+        f"Type: {monster['size']} {monster['creature_type']} | AC: {monster['ac']} | HP: {monster['hp']}")
+    print(f"Speed: {monster['speed']}")
+    print("-" * 50)
+    # Since monsters have flat stats in the SRD table:
+    print(
+        f"STR: {monster['str']} | DEX: {monster['dex']} | CON: {monster['con']}")
+    print(
+        f"INT: {monster['int']} | WIS: {monster['wis']} | CHA: {monster['cha']}")
+
+    if monster.get('description'):
+        print("-" * 50)
+        print(monster['description'])
+    print("="*50)
+    input("\nPress Enter to return...")

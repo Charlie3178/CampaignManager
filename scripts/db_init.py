@@ -17,10 +17,12 @@ def initialize_db():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
+    # The "Lean" Table List
     tables = [
-        'characters', 'bestiary', 'items', 'locations',
-        'creatures', 'races', 'subraces', 'classes',
-        'subclasses', 'lore_history', 'dm_notes', 'class_features'
+        'characters', 'creatures', 'items', 'locations',
+        'classes', 'spells', 'races', 'subraces',
+        'subclasses', 'lore', 'notes', 'features',
+        'backgrounds', 'feats'
     ]
     for table in tables:
         cursor.execute(f"DROP TABLE IF EXISTS {table}")
@@ -30,28 +32,32 @@ def initialize_db():
     CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        race TEXT,
-        class_or_role TEXT,      -- e.g., 'Level 5 Paladin' or 'Shopkeeper'
-        level INTEGER DEFAULT 1,
-        alignment TEXT,
-        strength INTEGER,
-        dexterity INTEGER,
-        constitution INTEGER,
-        intelligence INTEGER,
-        wisdom INTEGER,
-        charisma INTEGER,
-        hp_max INTEGER,
-        hp_current INTEGER,
-        ac INTEGER,
-        location_id INTEGER,     -- Link this to your locations table later
-        disposition TEXT,        -- Friendly, Hostile, Neutral, Suspicious
-        backstory TEXT,
-        inventory TEXT,          -- Useful for tracking quest items
+        pc INTEGER DEFAULT 0,
+        race INTEGER,
+        subr INTEGER,
+        cclass INTEGER,  
+        subc INTEGER,
+        bkgnd INTEGER,
+        lvl INTEGER DEFAULT 1,
+        xp INTEGER DEFAULT 0,
+        al TEXT DEFAULT 'N',
+        str INTEGER DEFAULT 10,
+        dex INTEGER DEFAULT 10,
+        con INTEGER DEFAULT 10,
+        int INTEGER DEFAULT 10,
+        wis INTEGER DEFAULT 10,
+        cha INTEGER DEFAULT 10,
+        ac INTEGER DEFAULT 10,
+        mhp INTEGER DEFAULT 10,
+        chp INTEGER DEFAULT 10,
+        aff TEXT,
         notes TEXT,
-        is_pc BOOLEAN DEFAULT 0, -- 1 for Player Character, 0 for NPC
-        FOREIGN KEY (location_id) REFERENCES locations (id)
-    )
-''')
+        FOREIGN KEY (race) REFERENCES races (id),
+        FOREIGN KEY (subr) REFERENCES subraces (id),
+        FOREIGN KEY (cclass) REFERENCES classes (id),
+        FOREIGN KEY (subc) REFERENCES subclasses (id),
+        FOREIGN KEY (bkgnd) REFERENCES backgrounds (id)
+    )''')
 
     # 2. Bestiary Table (with num_attacks and damage)
     cursor.execute('''
@@ -105,15 +111,14 @@ def initialize_db():
         )''')
 
 
-# --- TABLE 5: CLASSES (Updated) ---
+# TABLE 5: CLASSES
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS classes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            class_name TEXT NOT NULL,
-            hit_die TEXT,
-            proficiencies TEXT  -- Added this column
-        )
-    ''')
+CREATE TABLE IF NOT EXISTS classes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,  -- Simplified from class_name
+    hit_die TEXT,
+    profs TEXT           -- Shortened from proficiencies
+)''')
 
     # 6. Spells Table
     cursor.execute('''
@@ -160,58 +165,79 @@ def initialize_db():
 
     # 9. Subclasses Table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subclasses (
+    CREATE TABLE IF NOT EXISTS subclasses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        class_id INTEGER,    -- Links to classes.id
+        name TEXT NOT NULL,
+        flavor TEXT,         -- Simplified from flavor_text
+        FOREIGN KEY (class_id) REFERENCES classes (id)
+        )
+    ''')
+
+
+# 10. Lore
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS lore (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            class_id INTEGER,     -- Links to classes.id
+            title TEXT NOT NULL,
+            cat TEXT,
+            content TEXT,
+            loc_id INTEGER,
+            FOREIGN KEY (loc_id) REFERENCES locations (id)
+        )
+    ''')
+
+    # 11. Notes
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT,
+            secret INTEGER DEFAULT 1,
+            ent_type TEXT,
+            ent_id INTEGER
+        )
+    ''')
+
+    # 12. Features
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS features (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            flavor_text TEXT,
-            FOREIGN KEY (class_id) REFERENCES classes (id)
-        )
-    ''')
-
-
-# 10. Lore & History (World building)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS lore_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            category TEXT, -- e.g., 'Myth', 'History', 'Rumor'
-            content TEXT,
-            location_id INTEGER,
-            FOREIGN KEY (location_id) REFERENCES locations (id)
-        )
-    ''')
-
-# 11. DM Notes (Campaign management)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS dm_notes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT,
-            is_secret INTEGER DEFAULT 1, -- 1 for True, 0 for False
-            related_entity_type TEXT, -- e.g., 'npc', 'location', 'item'
-            related_entity_id INTEGER
-        )
-''')
-
-# 12. New Centralized Features Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS class_features (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            feature_name TEXT NOT NULL,
-            level_required INTEGER,
-            description TEXT,
-            source_type TEXT, -- e.g., 'Class' or 'Subclass'
+            lvl INTEGER,
+            desc TEXT,
+            srctype TEXT,
             class_id INTEGER,
-            subclass_id INTEGER,
+            subc_id INTEGER,
             FOREIGN KEY (class_id) REFERENCES classes (id),
-            FOREIGN KEY (subclass_id) REFERENCES subclasses (id)
+            FOREIGN KEY (subc_id) REFERENCES subclasses (id)
         )
-''')
+    ''')
+
+    # 13. Backgrounds
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS backgrounds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            feature TEXT,
+            profs TEXT
+        )
+    ''')
+
+    # 14. Feats
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS feats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            req TEXT,
+            desc TEXT,
+            repeat INTEGER DEFAULT 0
+        )
+    ''')
 
     conn.commit()
     conn.close()
-    print("Success: All tables created in /data folder.")
+    print("Database initialized successfully with Lean Schema.")
 
 
 if __name__ == "__main__":
