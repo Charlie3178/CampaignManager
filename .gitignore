@@ -11,3 +11,6 @@ desktop.ini
 test_roller.py
 projecttree.txt
 Deprecated/
+build/
+dist/
+*.spec
