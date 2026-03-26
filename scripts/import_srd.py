@@ -70,7 +70,8 @@ def process_features(cursor, results):
         detail = fetch_srd(f"features/{item['index']}")
         if not detail:
             continue
-        print(f"  - Mapping Feature: {detail.get('name', item['index'])}")
+        print(f"  - Mapping Feature: {detail['name']}")
+
         desc = " ".join(detail.get('desc', []))
         cursor.execute('INSERT INTO features (name, lvl, desc, srctype) VALUES (?, ?, ?, ?)',
                        (detail['name'], detail['level'], desc, 'Class'))
@@ -145,6 +146,77 @@ def process_backgrounds(cursor, results):
         cursor.execute('INSERT INTO backgrounds (name, feature) VALUES (?, ?)',
                        (detail['name'], feat_name))
 
+
+def process_subraces(cursor, results):
+    for item in results:
+        detail = fetch_srd(f"subraces/{item['index']}")
+        if not detail:
+            continue
+        print(f"  - Mapping Subrace: {detail['name']}")
+
+        # Look up Parent Race ID
+        parent_index = detail.get('race', {}).get('index')
+        cursor.execute('SELECT id FROM races WHERE name LIKE ?',
+                       (parent_index,))
+        row = cursor.fetchone()
+        race_id = row[0] if row else None
+
+        bonuses = json.dumps(detail.get('ability_bonuses', []))
+        traits = json.dumps([t['name']
+                            for t in detail.get('racial_traits', [])])
+
+        cursor.execute('INSERT INTO subraces (name, race_id, ability_bonuses, traits) VALUES (?, ?, ?, ?)',
+                       (detail['name'], race_id, bonuses, traits))
+
+
+def process_subclasses(cursor, results):
+    for item in results:
+        detail = fetch_srd(f"subclasses/{item['index']}")
+        if not detail:
+            continue
+        print(f"  - Mapping Subclass: {detail['name']}")
+
+        # Look up Parent Class ID
+        parent_index = detail.get('class', {}).get('index')
+        cursor.execute(
+            'SELECT id FROM classes WHERE name LIKE ?', (parent_index,))
+        row = cursor.fetchone()
+        class_id = row[0] if row else None
+
+        cursor.execute('INSERT INTO subclasses (name, class_id, flavor) VALUES (?, ?, ?)',
+                       (detail['name'], class_id, detail.get('subclass_flavor', '')))
+
+
+def process_traits(cursor, results):
+    for item in results:
+        detail = fetch_srd(f"traits/{item['index']}")
+        if not detail:
+            continue
+        print(f"  - Mapping Trait: {detail['name']}")
+        desc = " ".join(detail.get('desc', []))
+        cursor.execute('INSERT INTO traits (name, description) VALUES (?, ?)',
+                       (detail['name'], desc))
+
+
+def process_languages(cursor, results):
+    for item in results:
+        detail = fetch_srd(f"languages/{item['index']}")
+        if not detail:
+            continue
+        print(f"  - Mapping Language: {detail['name']}")
+        cursor.execute('INSERT INTO languages (name, type, script) VALUES (?, ?, ?)',
+                       (detail['name'], detail.get('type'), detail.get('script')))
+
+
+def process_proficiencies(cursor, results):
+    for item in results:
+        detail = fetch_srd(f"proficiencies/{item['index']}")
+        if not detail:
+            continue
+        print(f"  - Mapping Proficiency: {detail['name']}")
+        cursor.execute('INSERT INTO proficiencies (name, type) VALUES (?, ?)',
+                       (detail['name'], detail.get('type')))
+
 # --- MASTER EXECUTION ---
 
 
@@ -156,12 +228,17 @@ def import_all():
     endpoints = {
         "creatures": ("monsters", process_creatures),
         "races": ("races", process_races),
+        "subraces": ("subraces", process_subraces),
         "classes": ("classes", process_classes),
+        "subclasses": ("subclasses", process_subclasses),
         "spells": ("spells", process_spells),
         "features": ("features", process_features),
         "items": ("equipment", process_items),
         "feats": ("feats", process_feats),
-        "backgrounds": ("backgrounds", process_backgrounds)
+        "backgrounds": ("backgrounds", process_backgrounds),
+        "traits": ("traits", process_traits),
+        "languages": ("languages", process_languages),
+        "proficiencies": ("proficiencies", process_proficiencies)
     }
 
     for table, (path, func) in endpoints.items():

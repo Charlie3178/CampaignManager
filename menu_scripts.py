@@ -271,12 +271,8 @@ def handle_db_management():
         choice = input("\nSelection: ")
 
         if choice == '1':
-            # Updated to include your full 9-table schema
             tables = [
-                'characters', 'creatures', 'items', 'locations',
-                'classes', 'subclasses', 'races', 'subraces',
-                'spells', 'features', 'traits',
-                'equipment', 'proficiencies', 'languages'
+                'characters', 'creatures', 'items', 'locations', 'classes', 'spells', 'races', 'subraces', 'subclasses', 'lore', 'notes', 'features', 'backgrounds', 'feats', 'traits', 'proficiencies', 'languages'
             ]
             for table in tables:
                 try:
@@ -286,7 +282,7 @@ def handle_db_management():
             print("\n[SUCCESS] All data backed up to the project folder.")
 
         elif choice == '2':
-            print("\nTables: characters, creatures, items, locations, classes, races, spells, subclasses, subraces")
+            print("\nTables: characters, creatures, items, locations, classes, spells, races, subraces, subclasses, lore, notes, features, backgrounds, feats, traits, proficiencies, languages")
             table = input("Target Table: ").lower()
             file_path = input("Enter CSV filename: ")
             try:

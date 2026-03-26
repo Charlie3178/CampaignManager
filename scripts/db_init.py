@@ -22,7 +22,7 @@ def initialize_db():
         'characters', 'creatures', 'items', 'locations',
         'classes', 'spells', 'races', 'subraces',
         'subclasses', 'lore', 'notes', 'features',
-        'backgrounds', 'feats'
+        'backgrounds', 'feats', 'traits', 'proficiencies', 'languages'
     ]
     for table in tables:
         cursor.execute(f"DROP TABLE IF EXISTS {table}")
@@ -31,7 +31,7 @@ def initialize_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE,
         pc INTEGER DEFAULT 0,
         race INTEGER,
         subr INTEGER,
@@ -63,7 +63,7 @@ def initialize_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS creatures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE,
         size TEXT,
         creature_type TEXT,
         alignment TEXT,
@@ -90,7 +90,7 @@ def initialize_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE,
         category TEXT,
         cost TEXT,
         weight REAL,
@@ -105,7 +105,7 @@ def initialize_db():
     cursor.execute('''
         CREATE TABLE locations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL, location_type TEXT, region TEXT,
+            name TEXT NOT NULL UNIQUE, location_type TEXT, region TEXT,
             description TEXT, notes TEXT, parent_id INTEGER,
             FOREIGN KEY (parent_id) REFERENCES locations (id)
         )''')
@@ -115,7 +115,7 @@ def initialize_db():
     cursor.execute('''
 CREATE TABLE IF NOT EXISTS classes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,  -- Simplified from class_name
+    name TEXT NOT NULL UNIQUE,  -- Simplified from class_name
     hit_die TEXT,
     profs TEXT           -- Shortened from proficiencies
 )''')
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS spells (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             level INTEGER,          -- 0 for Cantrips, 1-9 for leveled spells
             school TEXT,           -- Evocation, Necromancy, etc.
             casting_time TEXT,
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS races (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             speed INTEGER,
             ability_bonuses TEXT, -- e.g., 'STR+2, CON+1'
             alignment TEXT,
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS classes (
         CREATE TABLE IF NOT EXISTS subraces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             race_id INTEGER,      -- Links to races.id
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             ability_bonuses TEXT,
             traits TEXT,
             FOREIGN KEY (race_id) REFERENCES races (id)
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS classes (
     CREATE TABLE IF NOT EXISTS subclasses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         class_id INTEGER,    -- Links to classes.id
-        name TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE,
         flavor TEXT,         -- Simplified from flavor_text
         FOREIGN KEY (class_id) REFERENCES classes (id)
         )
@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lore (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
+            title TEXT NOT NULL UNIQUE,
             cat TEXT,
             content TEXT,
             loc_id INTEGER,
@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
+            title TEXT NOT NULL UNIQUE,
             content TEXT,
             secret INTEGER DEFAULT 1,
             ent_type TEXT,
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS backgrounds (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             feature TEXT,
             profs TEXT
         )
@@ -228,10 +228,38 @@ CREATE TABLE IF NOT EXISTS classes (
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS feats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             req TEXT,
             desc TEXT,
             repeat INTEGER DEFAULT 0
+        )
+    ''')
+
+# 15. Traits
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS traits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT
+        )
+    ''')
+
+    # 16. Proficiencies
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS proficiencies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            type TEXT
+        )
+    ''')
+
+    # 17. Languages
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS languages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            type TEXT,
+            script TEXT
         )
     ''')
 
