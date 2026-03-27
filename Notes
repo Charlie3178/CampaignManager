@@ -1,2 +1,28 @@
+v1.0.1
 Bugs disovered in one of the search/display functions.  
 They will be addressed along with updated menus in the next release.
+
+v1.1.0
+FIxed all known bugs.
+Added an 18th table for Skills.
+Cleaned up the UI
+Released this version thinking Ihad addressed all the bugs...
+.......
+Disovered another bug.... there are probably others...
+Bugs found in this release:
+
+1. Searching Classes by name/id crashes when getting "Notes"
+2. Searching Subclasses by name/id crashes when getting "Notes"
+3. Searching Races by name/id crashes when getting "Notes"
+4. Searching Subraces by name/id crashes when getting "Notes"
+5. Searching Traits by name/id crashes when getting "Notes"
+6. Searching Features by name/id crashes when getting "Notes"
+7. Searching Skills by name/id crashes when getting "Notes"
+8. Searching Proficiences by name/id crashes when getting "Notes"
+9. Searching Spells by name/id crashes when getting "Notes"
+10. Searching Feats by name/id crashes when getting "Notes"
+11. Searching Creatures by name/id crashes when getting "Name" - Thought I caught this one. -_-_-_-_-_-_-_-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-_-\-\*
+<!-- **********So much for fixing all the bugs********** -->
+
+This is all I can test at the moment.  
+Will address it in v1.1.1
