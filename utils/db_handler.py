@@ -83,18 +83,30 @@ def import_from_csv(table_name, file_name):
     print(f"[SUCCESS] Imported data into {table_name}!")
 
 
-def bulk_import_all():
-    """Look for standard template names in /data and import them."""
-    mapping = {
-        'characters_template.csv': 'characters',
-        'creatures_template.csv': 'creatures',
-        'items_template.csv': 'items',
-        'locations_template.csv': 'locations'
-    }
-    print("\n--- Starting Bulk Import ---")
-    for file_name, table in mapping.items():
+def bulk_import(tables):
+    for table in tables:
+        file_name = f"{table}_template.csv"
         import_from_csv(table, file_name)
-    print("--- Bulk Import Complete ---\n")
+
+
+def export_all():
+    """The 'Golden Backup' - Exports all 17 tables to CSV templates."""
+    tables = [
+        'characters', 'creatures', 'items', 'locations', 'classes', 'spells',
+        'races', 'subraces', 'subclasses', 'lore', 'notes', 'features',
+        'backgrounds', 'feats', 'traits', 'proficiencies', 'languages'
+    ]
+    print("\n--- STARTING GOLDEN BACKUP (EXPORT) ---")
+    for table in tables:
+        file_name = f"{table}_template.csv"
+        try:
+            # Reusing your existing export logic
+            export_table_to_csv(table)
+            print(f" [OK] Exported {table} to {file_name}")
+        except Exception as e:
+            print(f" [!] Failed to export {table}: {e}")
+    print("\n[SUCCESS] All tables exported to /data folder.")
+
 
 # --- CRUD FUNCTIONS FOR MENU_SCRIPTS ---
 
@@ -123,25 +135,33 @@ def delete_by_id(table, item_id):
 
 
 def find_by_hybrid(table, search_input):
-    """Searches by ID or Name used by 'Search' and 'Edit' menus."""
+    """Searches by ID or the first text-based column available in the table."""
     conn = get_connection()
+    # Ensure you are using Row factory to get the dictionary-like results
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+
     if str(search_input).isdigit():
         query = f"SELECT * FROM {table} WHERE id = ?"
         cursor.execute(query, (int(search_input),))
     else:
-        query = f"SELECT * FROM {table} WHERE name LIKE ?"
+        # 1. Get the column names for this specific table
+        cursor.execute(f"PRAGMA table_info({table})")
+        columns = [col[1] for col in cursor.fetchall()]
+
+        # 2. Pick the best 'name' column (fallback to first text column if 'name' is missing)
+        search_col = 'name' if 'name' in columns else columns[1]
+
+        query = f"SELECT * FROM {table} WHERE {search_col} LIKE ?"
         cursor.execute(query, (f"%{search_input}%",))
+
     results = cursor.fetchall()
     conn.close()
 
     if results:
-        # TEMP DEBUG: Print the keys found in the first result
-        print(f"DEBUG: Columns found in {table}: {list(results[0].keys())}")
+        # Now this will return the full Row object which you can print keys from
         return results[0]
     return None
-
-    # return results
 
 
 def get_all(table):

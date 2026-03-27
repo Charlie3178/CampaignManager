@@ -22,7 +22,7 @@ def initialize_db():
         'characters', 'creatures', 'items', 'locations',
         'classes', 'spells', 'races', 'subraces',
         'subclasses', 'lore', 'notes', 'features',
-        'backgrounds', 'feats', 'traits', 'proficiencies', 'languages'
+        'backgrounds', 'feats', 'traits', 'proficiencies', 'languages', 'skills'
     ]
     for table in tables:
         cursor.execute(f"DROP TABLE IF EXISTS {table}")
@@ -90,7 +90,7 @@ def initialize_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
         category TEXT,
         cost TEXT,
         weight REAL,
@@ -262,6 +262,16 @@ CREATE TABLE IF NOT EXISTS classes (
             script TEXT
         )
     ''')
+    # 18. Skills
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS skills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        ability_score TEXT,      -- e.g., 'DEX', 'INT'
+        description TEXT,
+        category TEXT            -- e.g., 'Knowledge', 'Physical'
+    )
+''')
 
     conn.commit()
     conn.close()

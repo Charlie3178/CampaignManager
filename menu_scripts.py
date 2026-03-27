@@ -1,6 +1,8 @@
+# Assuming this is your current helper
 from utils.db_handler import add_record, get_connection, find_by_hybrid, delete_by_id, update_record
-from utils.db_handler import export_table_to_csv, import_from_csv
-from scripts import db_init
+from utils.db_handler import export_table_to_csv, import_from_csv, bulk_import, export_all
+from scripts.db_init import initialize_db
+from scripts.import_srd import import_all
 from utils.roller import roll_stats, assign_stats, apply_racial_bonuses
 import sqlite3
 import os
@@ -41,6 +43,15 @@ def handle_list_all(table_name):
         for row in rows:
             print(
                 f"{row['id']:<4} | {row['name']:<30} | {row['level']:<4} | {row['school']}")
+
+    elif table_name == 'skills':
+        cursor.execute(f"SELECT id, name, ability_score FROM {table_name}")
+        rows = cursor.fetchall()
+        print(f"\n--- SKILLS LIBRARY ---")
+        print(f"{'ID':<4} | {'NAME':<20} | {'STAT'}")
+        print("-" * 35)
+        for row in rows:
+            print(f"{row['id']:<4} | {row['name']:<20} | {row['ability_score']}")
 
     else:
         # Keep your original logic for other tables
@@ -143,59 +154,62 @@ def handle_create(category, edit_func):
         print(f"\n[SUCCESS] {data['name']} added to {category}!")
 
 
-def display_details(table_name, data):
-    """Formatted output for Search/Edit views including the Database ID."""
+def display_details(table, row):
+    # This line is the missing link!
+    # It converts the sqlite3.Row into a standard dictionary.
+    data = dict(row)
+
+    # Now .get() will work perfectly
+    print(f"\n {data.get('name', 'UNKNOWN').upper()} (ID: {data.get('id', 'N/A')})")
+    """Formatted output that matches the Lean Schema in db_init.py."""
     print("\n" + "="*45)
-    print(f" {data['name'].upper()} (ID: {data['id']})")
+    print(f" {data.get('name', 'UNKNOWN').upper()} (ID: {data.get('id', 'N/A')})")
     print("="*45)
 
-    if table_name == 'characters':
-        pc_tag = "[PC]" if data['pcc'] else "[NPC]"
-
-        print(f"{pc_tag} {data['race']} | {data['cclass']}")
-
-        char_level = data.get('level', 1)
-        print(f"Level: {char_level} | HP: {data['mhp']} | AC: {data['ac']}")
-
-        print(f"Stats: S:{data['str']} D:{data['dex']} C:{data['con']} "
-              f"I:{data['int']} W:{data['wis']} Ch:{data['cha']}")
-
-        if 'affiliation' in data:
-            print(f"Affiliation: {data['affiliation']}")
-
-    elif table_name == 'creatures':
+    if table == 'characters':
+        pc_tag = "[PC]" if data.get('pc') else "[NPC]"
+        # Note: race/cclass are IDs. v1.1.0 should eventually Join these tables.
+        print(f"{pc_tag} Race ID: {data.get('race')} | Class ID: {data.get('cclass')}")
         print(
-            f"Type: {data['size']} {data['creature_type']} | Alignment: {data['alignment']}")
+            f"Level: {data.get('lvl', 1)} | HP: {data.get('chp')}/{data.get('mhp')} | AC: {data.get('ac')}")
+        print(f"Stats: S:{data.get('str')} D:{data.get('dex')} C:{data.get('con')} "
+              f"I:{data.get('int')} W:{data.get('wis')} Ch:{data.get('cha')}")
+
+    elif table == 'creatures':
         print(
-            f"CR: {data['cr']} | HP: {data['hp']} | AC: {data['ac']} | XP: {data['xp']}")
-        print(f"Attacks: {data['num_attacks']} | Damage: {data['damage']}")
+            f"Type: {data.get('size')} {data.get('creature_type')} | Alignment: {data.get('alignment')}")
+        print(
+            f"CR: {data.get('cr')} | HP: {data.get('hp')} | AC: {data.get('ac')} | XP: {data.get('xp')}")
+        # These fields are currently 'notes' or 'actions' in your schema
+        if data.get('speed'):
+            print(f"Speed: {data.get('speed')}")
 
-    elif table_name == 'items':
-        magical = "YES" if data['is_magical'] else "NO"
-        attune = "YES" if data['requires_attunement'] else "NO"
-        print(f"Category: {data['category']} | Rarity: {data['rarity']}")
+    elif table == 'items':
+        magical = "YES" if data.get('requires_attunement') else "NO"
+        print(
+            f"Category: {data.get('category')} | Rarity: {data.get('rarity')}")
+        print(
+            f"Cost: {data.get('cost', '0gp')} | Weight: {data.get('weight', 0)} lbs")
 
-        coins = []
-        for den in ['pp', 'gp', 'ep', 'sp', 'cp']:
-            if data.get(den, 0) > 0:
-                coins.append(f"{data[den]}{den}")
-        val_str = ", ".join(coins) if coins else "0gp"
+    elif table == 'locations':
+        print(
+            f"Type: {data.get('location_type')} | Region: {data.get('region')}")
 
-        print(f"Value: {val_str} | Weight: {data['weight']} lbs")
-        print(f"Magical: {magical} | Attunement Required: {attune}")
+    # Universal Description/Notes handler
+    desc = data.get('description') or data.get(
+        'notes') or data.get('content') or data.get('desc')
+    if desc:
+        print("-" * 45)
+        import textwrap
+        print(textwrap.fill(str(desc), width=45))
 
-    elif table_name == 'locations':
-        print(f"Type: {data['location_type']} | Region: {data['region']}")
-        if data.get('parent_id'):
-            print(f"Located Inside (Parent ID): {data['parent_id']}")
-
-    print("-" * 45)
+    print("="*45)
 
     # Universal Notes/Description check
-    if table_name == 'locations':
+    if table == 'locations':
         print(f"DESCRIPTION: {data['description']}")
         print(f"NOTES: {data['notes']}")
-    elif table_name == 'items':
+    elif table == 'items':
         print(f"DESCRIPTION: {data['description']}")
     else:
         print(f"NOTES: {data['notes']}")
@@ -203,11 +217,11 @@ def display_details(table_name, data):
     print("="*45)
 
 # Access columns directly by name instead of using .get()
-    if table_name == 'locations':
+    if table == 'locations':
         # Locations has both description AND notes
         print(f"DESCRIPTION: {data['description']}")
         print(f"NOTES: {data['notes']}")
-    elif table_name == 'items':
+    elif table == 'items':
         print(f"DESCRIPTION: {data['description']}")
     else:
         # Characters and Creatures use 'notes'
@@ -216,16 +230,19 @@ def display_details(table_name, data):
     print("="*45)
 
 
-def handle_search(table_name):
-    """Retrieves and displays full details."""
-    search_term = input(f"\nEnter {table_name[:-1]} Name or ID: ")
-    results = find_by_hybrid(table_name, search_term)
+def handle_search(table):
+    search_input = input(f"\nEnter {table.rstrip('s')} Name or ID: ")
 
-    if not results:
-        print(f"[!] No match found for '{search_term}'.")
+    # 1. Fetch the actual record from the database
+    # Assuming your db_handler has the find_by_hybrid function
+    row = find_by_hybrid(table, search_input)
+
+    # 2. Check if a record was actually found
+    if row:
+        # 3. Pass the DATABASE ROW (a dict-like object), not the input string
+        display_details(table, row)
     else:
-        for row in results:
-            display_details(table_name, row)
+        print(f"\n[ERROR] No record found in {table} for '{search_input}'.")
 
 
 def handle_edit(table_name, edit_func):
@@ -259,52 +276,34 @@ def handle_edit(table_name, edit_func):
 
 
 def handle_db_management():
-    """Submenu for bulk data operations and database maintenance."""
+    """Matches your GitHub release: No renamed functions, no invented wrappers."""
     while True:
         print("\n--- DATABASE MANAGEMENT ---")
         print("1. Export All Tables (Golden Backup)")
-        print("2. Import Data from CSV")
-        print("3. Initialize/Reset Database")
-        print("4. Import SRD Data (Monsters & Spells)")
+        print("2. Bulk Sync All CSVs (Import All)")
+        print("3. Import SRD Data (Monsters & Spells)")
+        print("4. Initialize/Reset Database")
         print("0. Back to Main Menu")
 
         choice = input("\nSelection: ")
 
         if choice == '1':
-            tables = [
-                'characters', 'creatures', 'items', 'locations', 'classes', 'spells', 'races', 'subraces', 'subclasses', 'lore', 'notes', 'features', 'backgrounds', 'feats', 'traits', 'proficiencies', 'languages'
-            ]
-            for table in tables:
-                try:
-                    export_table_to_csv(table)
-                except Exception as e:
-                    print(f" [!] Failed to export {table}: {e}")
-            print("\n[SUCCESS] All data backed up to the project folder.")
+            # This is your existing function that produced your screenshot
+            export_all()
 
         elif choice == '2':
-            print("\nTables: characters, creatures, items, locations, classes, spells, races, subraces, subclasses, lore, notes, features, backgrounds, feats, traits, proficiencies, languages")
-            table = input("Target Table: ").lower()
-            file_path = input("Enter CSV filename: ")
-            try:
-                import_from_csv(table, file_path)
-                print(f"\n[SUCCESS] {table} updated from {file_path}")
-            except Exception as e:
-                print(f"[!] Error during import: {e}")
+            # This is the function we just added/fixed in db_handler
+            handle_bulk_sync()
 
         elif choice == '3':
-            confirm = input("Are you SURE? This wipes all data! (y/n): ")
-            if confirm.lower() == 'y':
-                db_init.initialize_db()
-                print("\n[!] Database has been reset to factory defaults.")
+            # Your existing, separate SRD function
+            import_all()
 
         elif choice == '4':
-            print("\nFetching SRD Data... This may take a moment.")
-            try:
-                from scripts import import_srd
-                import_srd.import_all()
-                print("\n[SUCCESS] SRD Data (Creatures/Spells) imported.")
-            except Exception as e:
-                print(f"[!] Error during SRD import: {e}")
+            confirm = input(
+                "[!] WARNING: This will wipe all data. Continue? (y/n): ")
+            if confirm.lower() == 'y':
+                initialize_db()
 
         elif choice == '0':
             break
@@ -547,3 +546,14 @@ def handle_view_creature():
         print(monster['description'])
     print("="*50)
     input("\nPress Enter to return...")
+
+
+def handle_bulk_sync():
+    tables = [
+        'characters', 'creatures', 'items', 'locations', 'classes', 'spells',
+        'races', 'subraces', 'subclasses', 'lore', 'notes', 'features',
+        'backgrounds', 'feats', 'traits', 'proficiencies', 'languages', 'skills'
+    ]
+    print("\n--- STARTING BULK SYNC ---")
+    bulk_import(tables)
+    print("\n[SUCCESS] Sync Complete.")

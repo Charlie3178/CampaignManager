@@ -72,27 +72,64 @@ def process_features(cursor, results):
             continue
         print(f"  - Mapping Feature: {detail['name']}")
 
-        desc = " ".join(detail.get('desc', []))
-        cursor.execute('INSERT INTO features (name, lvl, desc, srctype) VALUES (?, ?, ?, ?)',
-                       (detail['name'], detail['level'], desc, 'Class'))
+        # 1. Get names from API
+        api_class_name = detail.get('class', {}).get('name')
+        api_subclass_name = detail.get('subclass', {}).get('name')
+
+        # 2. Look up the IDs in your local database
+        class_id = None
+        subclass_id = None
+
+        if api_class_name:
+            cursor.execute(
+                "SELECT id FROM classes WHERE name = ?", (api_class_name,))
+            res = cursor.fetchone()
+            if res:
+                class_id = res[0]
+
+        if api_subclass_name:
+            cursor.execute(
+                "SELECT id FROM subclasses WHERE name = ?", (api_subclass_name,))
+            res = cursor.fetchone()
+            if res:
+                subclass_id = res[0]
+
+        desc = "\n".join(detail.get('desc', []))
+
+        cursor.execute('''
+            INSERT OR IGNORE INTO features (name, class_id, subc_id, desc) # Changed subc_id and desc
+            VALUES (?, ?, ?, ?)
+        ''', (detail['name'], class_id, subclass_id, desc))
 
 
 def process_items(cursor, results):
     for item in results:
-        detail = fetch_srd(f"equipment/{item['index']}")
+        # This pulls the correct path (equipment/item or magic-items/item) from the API's own link
+        path = item['url'].split('/api/')[-1]
+        detail = fetch_srd(path)
+
         if not detail:
             continue
         print(f"  - Mapping Item: {detail['name']}")
 
-        # Flattening cost (e.g., {"quantity": 2, "unit": "gp"})
-        cost_str = f"{detail.get('cost', {}).get('quantity', 0)} {detail.get('cost', {}).get('unit', '')}"
-        desc = " ".join(detail.get('desc', []))
+        # Magic items use 'item_category', Equipment uses 'equipment_category'
+        category = (detail.get('equipment_category', {}).get('name') or
+                    detail.get('item_category', {}).get('name') or "Magic Item")
+
+        # Magic items often don't have weight/cost in the standard format
+        weight = detail.get('weight', 0)
+        cost_data = detail.get('cost', {})
+        cost_str = f"{cost_data.get('quantity', '')} {cost_data.get('unit', '')}".strip(
+        )
+
+        if not cost_str:
+            # For magic items, we'll put the rarity in the cost column
+            cost_str = detail.get('rarity', {}).get('name', 'Varies')
 
         cursor.execute('''
-            INSERT INTO items (name, category, cost, weight, description, rarity)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (detail['name'], detail.get('equipment_category', {}).get('name'),
-              cost_str, detail.get('weight'), desc, detail.get('rarity', {}).get('name')))
+            INSERT INTO items (name, category, cost, weight, description)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (detail['name'], category, cost_str, weight, str(detail.get('desc', ''))))
 
 
 def process_feats(cursor, results):
@@ -217,6 +254,26 @@ def process_proficiencies(cursor, results):
         cursor.execute('INSERT INTO proficiencies (name, type) VALUES (?, ?)',
                        (detail['name'], detail.get('type')))
 
+
+def process_skills(cursor, results):
+    """Processes the /api/skills endpoint using your existing fetch_srd helper."""
+    for item in results:
+        # Your fetch_srd expects a path like 'skills/athletics'
+        # item['url'] is usually '/api/skills/athletics', so we split it
+        path = item['url'].split('/api/')[-1]
+        detail = fetch_srd(path)
+
+        if detail:
+            print(f"  - Mapping Skill: {detail.get('name')}")
+            # Get the ability score name (e.g., 'DEX') from the nested dictionary
+            ability = detail.get('ability_score', {}).get('name', 'N/A')
+            desc = "\n".join(detail.get('desc', []))
+
+            cursor.execute('''
+                INSERT OR IGNORE INTO skills (name, ability_score, description)
+                VALUES (?, ?, ?)
+            ''', (detail.get('name'), ability, desc))
+
 # --- MASTER EXECUTION ---
 
 
@@ -234,11 +291,13 @@ def import_all():
         "spells": ("spells", process_spells),
         "features": ("features", process_features),
         "items": ("equipment", process_items),
+        "magic_items": ("magic-items", process_items),  # ADD THIS LINE
         "feats": ("feats", process_feats),
         "backgrounds": ("backgrounds", process_backgrounds),
         "traits": ("traits", process_traits),
         "languages": ("languages", process_languages),
-        "proficiencies": ("proficiencies", process_proficiencies)
+        "proficiencies": ("proficiencies", process_proficiencies),
+        "skills": ("skills", process_skills)
     }
 
     for table, (path, func) in endpoints.items():
