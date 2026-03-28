@@ -21,8 +21,28 @@ Bugs found in this release:
 8. Searching Proficiences by name/id crashes when getting "Notes"
 9. Searching Spells by name/id crashes when getting "Notes"
 10. Searching Feats by name/id crashes when getting "Notes"
-11. Searching Creatures by name/id crashes when getting "Name" - Thought I caught this one. -_-_-_-_-_-_-_-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-_-\-\*
+11. Searching Creatures by name/id crashes when getting "Name" - Thought I caught this one.
+
+-_-_-_-_-_-_-_-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-_-\-\*
+
 <!-- **********So much for fixing all the bugs********** -->
 
 This is all I can test at the moment.  
 Will address it in v1.1.1
+
+-_-_-_-_-_-_-_-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-_-\-\*
+
+v1.1.1
+Surgical fix for the "Notes" infestation.
+Implemented a schema-agnostic display function because apparently 18 tables
+can't agree on what to call a description column.
+Used .get() fallbacks to catch 'notes', 'desc', 'profs', 'flavor', and 'traits'.
+Also added textwrap so the console doesn't look like a mess with long SRD entries.
+
+Fixed:
+
+1. All 10 tables that were crashing on "Notes" (Classes, Spells, etc.)
+2. Creature name/id crash.
+3. Updated git-push.bat to handle builds and tagging automatically.
+
+-_-_-_-_-_-_-_-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-\*\*-_-_-_-_-_-_-_-\-\*
