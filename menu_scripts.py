@@ -6,6 +6,7 @@ from scripts.import_srd import import_all
 from utils.roller import roll_stats, assign_stats, apply_racial_bonuses
 import sqlite3
 import os
+import textwrap
 
 
 def handle_list_all(table_name):
@@ -155,79 +156,71 @@ def handle_create(category, edit_func):
 
 
 def display_details(table, row):
-    # This line is the missing link!
-    # It converts the sqlite3.Row into a standard dictionary.
+    """
+    Handles varying schemas across 18 tables by using 
+    fallback keys and safe .get() calls.
+    """
+    # 1. Convert row to a dict so .get() works reliably
     data = dict(row)
 
-    # Now .get() will work perfectly
-    print(f"\n {data.get('name', 'UNKNOWN').upper()} (ID: {data.get('id', 'N/A')})")
-    """Formatted output that matches the Lean Schema in db_init.py."""
-    print("\n" + "="*45)
-    print(f" {data.get('name', 'UNKNOWN').upper()} (ID: {data.get('id', 'N/A')})")
-    print("="*45)
+    # 2. THE HEADER (Fixes Bug 11)
+    # Checks 'name' first, then 'title' (used in Lore/Notes), then 'Unknown'
+    name_val = data.get('name') or data.get('title') or "Unknown Entry"
+    entry_id = data.get('id', '??')
 
-    if table == 'characters':
-        pc_tag = "[PC]" if data.get('pc') else "[NPC]"
-        # Note: race/cclass are IDs. v1.1.0 should eventually Join these tables.
-        print(f"{pc_tag} Race ID: {data.get('race')} | Class ID: {data.get('cclass')}")
-        print(
-            f"Level: {data.get('lvl', 1)} | HP: {data.get('chp')}/{data.get('mhp')} | AC: {data.get('ac')}")
-        print(f"Stats: S:{data.get('str')} D:{data.get('dex')} C:{data.get('con')} "
-              f"I:{data.get('int')} W:{data.get('wis')} Ch:{data.get('cha')}")
+    print("\n" + "="*50)
+    print(f" {name_val.upper()} (ID: {entry_id}) ".center(50))
+    print("="*50)
 
-    elif table == 'creatures':
+    # 3. TABLE-SPECIFIC FORMATTING
+    if table == 'creatures':
         print(
-            f"Type: {data.get('size')} {data.get('creature_type')} | Alignment: {data.get('alignment')}")
+            f"CR: {data.get('cr', '0')} | Type: {data.get('size', '')} {data.get('creature_type', '')}")
         print(
-            f"CR: {data.get('cr')} | HP: {data.get('hp')} | AC: {data.get('ac')} | XP: {data.get('xp')}")
-        # These fields are currently 'notes' or 'actions' in your schema
-        if data.get('speed'):
-            print(f"Speed: {data.get('speed')}")
+            f"AC: {data.get('ac', '10')} | HP: {data.get('hp', '0')} | Speed: {data.get('speed', '30ft')}")
+        print("-" * 50)
+        print(
+            f"STR: {data.get('str')} | DEX: {data.get('dex')} | CON: {data.get('con')}")
+        print(
+            f"INT: {data.get('int')} | WIS: {data.get('wis')} | CHA: {data.get('cha')}")
 
     elif table == 'items':
-        magical = "YES" if data.get('requires_attunement') else "NO"
         print(
             f"Category: {data.get('category')} | Rarity: {data.get('rarity')}")
         print(
             f"Cost: {data.get('cost', '0gp')} | Weight: {data.get('weight', 0)} lbs")
 
-    elif table == 'locations':
+    elif table == 'spells':
+        print(f"Level: {data.get('level')} | School: {data.get('school')}")
         print(
-            f"Type: {data.get('location_type')} | Region: {data.get('region')}")
+            f"Casting Time: {data.get('casting_time')} | Range: {data.get('range')}")
+        print(
+            f"Components: {data.get('components')} | Duration: {data.get('duration')}")
 
-    # Universal Description/Notes handler
-    desc = data.get('description') or data.get(
-        'notes') or data.get('content') or data.get('desc')
-    if desc:
-        print("-" * 45)
-        import textwrap
-        print(textwrap.fill(str(desc), width=45))
+    elif table == 'skills':
+        print(
+            f"Ability: {data.get('ability_score')} | Category: {data.get('category')}")
 
-    print("="*45)
+    # 4. THE UNIVERSAL FALLBACK (Fixes Bugs 1-10)
+    # Searches through every possible 'description' column name from your db_init.py
+    description_text = (
+        data.get('notes') or
+        data.get('description') or
+        data.get('desc') or
+        data.get('traits') or
+        data.get('flavor') or
+        data.get('profs') or
+        data.get('content') or
+        "No additional details found in database."
+    )
 
-    # Universal Notes/Description check
-    if table == 'locations':
-        print(f"DESCRIPTION: {data['description']}")
-        print(f"NOTES: {data['notes']}")
-    elif table == 'items':
-        print(f"DESCRIPTION: {data['description']}")
-    else:
-        print(f"NOTES: {data['notes']}")
+    print("-" * 50)
+    print("DETAILS:")
+    # Wrap text to 48 chars so it doesn't break the console layout
+    print(textwrap.fill(str(description_text), width=48))
 
-    print("="*45)
-
-# Access columns directly by name instead of using .get()
-    if table == 'locations':
-        # Locations has both description AND notes
-        print(f"DESCRIPTION: {data['description']}")
-        print(f"NOTES: {data['notes']}")
-    elif table == 'items':
-        print(f"DESCRIPTION: {data['description']}")
-    else:
-        # Characters and Creatures use 'notes'
-        print(f"NOTES: {data['notes']}")
-
-    print("="*45)
+    print("="*50)
+    input("\nPress Enter to return...")
 
 
 def handle_search(table):
